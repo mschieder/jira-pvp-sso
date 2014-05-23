@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	
+	<modelVersion>4.0.0</modelVersion>
+
+	<!--//////////////////// ABOUT //////////////////// -->
+
+	<groupId>cc.schieder.pvp</groupId>
+	<artifactId>jira-pvp-sso</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
+
+	<name>jira-pvp-sso</name>
+	<description>Single sign-on authenticator for Atlassian JIRA using the Austrian Portalverbundprotokoll standard for governmental organizations</description>
+	<url>http://github.com/mschieder/jira-pvp-sso</url>
+	<inceptionYear>2014</inceptionYear>
+
+	<developers>
+		<developer>
+			<name>Michael Schieder</name>
+			<email>michael@schieder.cc</email>
+			<organization>Michael Schieder</organization>
+			<organizationUrl>http://www.schieder.cc</organizationUrl>
+		</developer>
+	</developers>
+
+
+	<!--//////////////////// DISTRIBUTION //////////////////// -->
+	<licenses>
+		<license>
+			<name>MIT</name>
+			<url>http://opensource.org/licenses/MIT</url>
+		</license>
+	</licenses>
+
+	<scm>
+		<url>http://github.com/mschieder/jira-pvp-sso</url>
+		<connection>scm:git:git@github.com:mschieder/jira-pvp-sso.git</connection>
+	</scm>
+
+	<issueManagement>
+        <system>github</system>
+        <url>http://github.com/mschieder/jira-pvp-sso/issues</url>
+    </issueManagement>
+
+
+    <!--//////////////////// PROPERTIES ////////////////////-->
+
+
+	<properties>
+		<maven.compiler.target>1.7</maven.compiler.target>
+		<maven.compiler.source>1.7</maven.compiler.source>
+	</properties>
+
+
+	<build>
+		<!-- The following plugin definitions are required to invoke functions 
+			that build run-time environment for running integration tests against JIRA 
+			<plugins> <plugin> <artifactId>maven-dependency-plugin</artifactId> </plugin> 
+			<plugin> <artifactId>maven-antrun-plugin</artifactId> </plugin> <plugin> 
+			<groupId>org.codehaus.cargo</groupId> <artifactId>cargo-maven2-plugin</artifactId> 
+			</plugin> </plugins> -->
+	</build>
+
+	<dependencies>
+		<!-- JIRA APIs -->
+		<dependency>
+			<groupId>com.atlassian.jira</groupId>
+			<artifactId>jira-api</artifactId>
+			<version>6.2.5</version>
+			<exclusions>
+				<exclusion>
+					<groupId>*</groupId>
+					<artifactId>*</artifactId>
+				</exclusion>
+			</exclusions>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.atlassian.crowd</groupId>
+			<artifactId>embedded-crowd-api</artifactId>
+			<version>2.7.0</version>
+			<scope>provided</scope>
+		</dependency> 
+		<dependency>
+			<groupId>com.atlassian.seraph</groupId>
+			<artifactId>atlassian-seraph</artifactId>
+			<version>2.6.0</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- Servlet API -->	
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<version>3.0.1</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- testing -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+			<version>4.0.3.RELEASE</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<version>1.9.5</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<repositories>
+		<repository>
+			<id>com.atlassian</id>
+			<name>Atlassian Repository</name>
+			<url>http://maven.atlassian.com/public</url>
+		</repository>
+		 <repository>
+		    <id>opencast-public</id>
+		    <url>http://repository.opencastproject.org/nexus/content/repositories/public/</url>
+		  </repository>
+	</repositories>
+
+</project>
