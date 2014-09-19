@@ -52,6 +52,7 @@ public class PVPHelper {
 			String roles = request.getHeader(PVPConstants.HTTP_HEADER_ROLES);
 
 			// map the portal roles to jira groups, ignore all portal attributes
+			logger.info("pvp roles for user " + username + ": " + roles);
 			List<String> pvpgroups = parsePVPRoles(roles);
 
 			// get the crowd service
@@ -82,6 +83,11 @@ public class PVPHelper {
 
 				for (String next : pvpgroups) {
 					Group g = cs.getGroup(next);
+					
+					if (g == null){
+						logger.error("group '" + next + "' is not a valid JIRA group. ignoring group.");
+						continue;
+					}
 					if (!cs.isUserMemberOfGroup(user, g)) {
 						logger.info(String.format("adding user %s to group %s",
 								username, next));
