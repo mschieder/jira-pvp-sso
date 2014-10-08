@@ -119,6 +119,7 @@
 		</dependency>
 	</dependencies>
 
+
 	<repositories>
 		<repository>
 			<id>com.atlassian</id>

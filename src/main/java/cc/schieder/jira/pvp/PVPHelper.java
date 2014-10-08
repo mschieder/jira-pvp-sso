@@ -112,7 +112,12 @@ public class PVPHelper {
 		return username;
 	}
 
-	protected List<String> parsePVPRoles(String roleString) {
+	public List<String> parsePVPRoles(String roleString) {
+		//STAT.AT Fix:
+		roleString = roleString.replaceAll("GROUPS\\(|\\)|NAME=", "");
+		roleString = roleString.replaceAll(",", ";");
+		//TODO: generisches Pattern
+		
 		List<String> roles = new ArrayList<>();
 		if (roleString != null) {
 			for (String next : roleString.split(";")) {
