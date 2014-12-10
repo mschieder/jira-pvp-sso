@@ -26,6 +26,8 @@ package cc.schieder.jira.pvp;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -39,7 +41,7 @@ import com.atlassian.seraph.auth.DefaultAuthenticator;
 import com.atlassian.seraph.config.SecurityConfig;
 
 /**
- * SSO Authenticator using the basuc Portalverbund 1.x http headers
+ * SSO Authenticator using the basic Portalverbund 1.x http headers
  * @author Michael Schieder
  * 
  */
@@ -47,31 +49,40 @@ public class PVPAuthenticator extends DefaultAuthenticator {
 
 	private static final long serialVersionUID = 1L;
 	private static final Logger log = Logger.getLogger(PVPAuthenticator.class);
-	private String validRemoteHost = null;
+	private List<String> validRemoteHosts = null;
 
 	@Override
 	public void init(Map<String, String> params, SecurityConfig config) {
 		super.init(params, config);
-		validRemoteHost = params.get(PVPHelper.INIT_PARAM_PVP_HOSTNAME);
+		validRemoteHosts = parseValidRemoteHosts(params.get(PVPHelper.INIT_PARAM_PVP_HOSTNAMES));
 	}
 
-	protected String getRemoteHostname(HttpServletRequest request) {
+	protected List<String> parseValidRemoteHosts(String validRemoteHostString){
+		List<String> hosts = null;
+		if (validRemoteHostString != null){
+			hosts = new ArrayList<>();
+			for (String next : validRemoteHostString.split(",")) {
+				String addr = getIPAddress(next);
+				if (addr != null){
+					hosts.add(getIPAddress(next));
+				}
+			}
+		}
+		return hosts;
+	}
+	protected String getIPAddress(String hostname) {
 		try {
-			InetAddress addr = InetAddress.getByName(request.getRemoteAddr());
-			return addr.getHostName();
+			return InetAddress.getByName(hostname).getHostAddress();
 		} catch (UnknownHostException e) {
-			log.error("error while getting remote hostname", e);
-			return "unknown";
+			log.error("error while getting remote ip address", e);
+			return null;
 		}
 	}
 
 	protected boolean isRequestFromValidRemoteHost(HttpServletRequest request) {
-		if (validRemoteHost != null) {
-			String remoteHostname = getRemoteHostname(request);
-			if (!validRemoteHost.equals(remoteHostname)) {
-				log.error("invalid request from host " + remoteHostname);
-				return false;
-			}
+		if (validRemoteHosts != null) {
+			String ipAddress = getIPAddress(request.getRemoteAddr());
+			return validRemoteHosts.contains(ipAddress);
 		}
 		return true;
 	}
@@ -80,6 +91,7 @@ public class PVPAuthenticator extends DefaultAuthenticator {
 	public Principal getUser(HttpServletRequest request,
 			HttpServletResponse response) {
 		if (!isRequestFromValidRemoteHost(request)) {
+			log.error("invalid request from host " + request.getRemoteAddr());
 			return null;
 		}
 
@@ -116,7 +128,7 @@ public class PVPAuthenticator extends DefaultAuthenticator {
 				}
 			}
 		} catch (Exception e) { // catch class cast exceptions
-			log.warn("Exception: " + e, e);
+			log.error("Exception: " + e.getMessage(), e);
 		}
 		return user;
 	}

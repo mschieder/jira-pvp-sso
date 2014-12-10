@@ -4,7 +4,7 @@ jira-pvp-sso
 ```
   <authenticator class="cc.schieder.jira.pvp.PVPAuthenticator">
     	 <init-param>
-    	    <param-name>valid.remote.hostname</param-name>
+    	    <param-name>valid.remote.hostnames</param-name>
     	    <param-value>server.mydomain</param-value>
   		  </init-param>
   </authenticator>

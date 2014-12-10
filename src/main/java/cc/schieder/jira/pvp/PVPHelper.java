@@ -39,7 +39,7 @@ import com.atlassian.jira.component.ComponentAccessor;
 import com.atlassian.jira.user.util.UserUtil;
 
 public class PVPHelper {
-	public final static String INIT_PARAM_PVP_HOSTNAME = "valid.remote.hostname";
+	public final static String INIT_PARAM_PVP_HOSTNAMES = "valid.remote.hostnames";
 
 	private Logger logger = Logger.getLogger(this.getClass());
 
@@ -85,7 +85,7 @@ public class PVPHelper {
 					Group g = cs.getGroup(next);
 					
 					if (g == null){
-						logger.error("group '" + next + "' is not a valid JIRA group. ignoring group.");
+						logger.error(username + ": group '" + next + "' is not a valid JIRA group. ignoring group.");
 						continue;
 					}
 					if (!cs.isUserMemberOfGroup(user, g)) {
@@ -106,20 +106,21 @@ public class PVPHelper {
 
 			} catch (Exception e) {
 				Logger.getLogger(this.getClass()).error(
-						"error while writing to crowd ", e);
+						username + ": error while writing to crowd ", e);
 			}
 		}
 		return username;
 	}
 
 	public List<String> parsePVPRoles(String roleString) {
-		//STAT.AT Fix:
-		roleString = roleString.replaceAll("GROUPS\\(|\\)|NAME=", "");
-		roleString = roleString.replaceAll(",", ";");
-		//TODO: generisches Pattern
 		
 		List<String> roles = new ArrayList<>();
 		if (roleString != null) {
+			//STAT.AT Fix:
+			roleString = roleString.replaceAll("GROUPS\\(|\\)|NAME=", "");
+			roleString = roleString.replaceAll(",", ";");
+			//TODO: generisches Pattern
+			
 			for (String next : roleString.split(";")) {
 				if (next.indexOf("(") != -1) {
 					next = next.substring(0, next.indexOf("("));
