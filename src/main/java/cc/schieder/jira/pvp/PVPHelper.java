@@ -43,7 +43,7 @@ public class PVPHelper {
 
 	private Logger logger = Logger.getLogger(this.getClass());
 
-	public String parseHttpRequest(HttpServletRequest request) {
+	public synchronized String parseHttpRequest(HttpServletRequest request) {
 		String username = request.getHeader(PVPConstants.HTTP_HEADER_USERID);
 
 		if (username != null) {
