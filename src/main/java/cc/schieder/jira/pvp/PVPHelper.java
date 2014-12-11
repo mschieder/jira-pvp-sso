@@ -35,107 +35,92 @@ import org.apache.log4j.Logger;
 import com.atlassian.crowd.embedded.api.CrowdService;
 import com.atlassian.crowd.embedded.api.Group;
 import com.atlassian.crowd.embedded.api.User;
-import com.atlassian.jira.component.ComponentAccessor;
 import com.atlassian.jira.user.util.UserUtil;
 
 public class PVPHelper {
-	public final static String INIT_PARAM_PVP_HOSTNAMES = "valid.remote.hostnames";
 
-	private Logger logger = Logger.getLogger(this.getClass());
+    public final static String INIT_PARAM_TRUSTED_HOSTS = "trusted.hosts";
 
-	public synchronized String parseHttpRequest(HttpServletRequest request) {
-		String username = request.getHeader(PVPConstants.HTTP_HEADER_USERID);
+    private Logger logger = Logger.getLogger(this.getClass());
 
-		if (username != null) {
-			String cn = request.getHeader(PVPConstants.HTTP_HEADER_CN);
-			String email = request.getHeader(PVPConstants.HTTP_HEADER_MAIL);
-			String roles = request.getHeader(PVPConstants.HTTP_HEADER_ROLES);
+    public synchronized String parseHttpRequest(HttpServletRequest request) {
+        String username = request.getHeader(PVPConstants.HTTP_HEADER_USERID);
 
-			// map the portal roles to jira groups, ignore all portal attributes
-			logger.info("pvp roles for user " + username + ": " + roles);
-			List<String> pvpgroups = parsePVPRoles(roles);
+        if (username != null) {
+            String cn = request.getHeader(PVPConstants.HTTP_HEADER_CN);
+            String email = request.getHeader(PVPConstants.HTTP_HEADER_MAIL);
+            String roles = request.getHeader(PVPConstants.HTTP_HEADER_ROLES);
 
-			// get the crowd service
-			CrowdService cs = getCrowdService();
-			UserUtil userUtil = getUserUtil();
+            // map the portal roles to jira groups, ignore all portal attributes
+            logger.info("pvp roles for user " + username + ": " + roles);
+            List<String> pvpgroups = parsePVPRoles(roles);
 
-			User user = cs.getUser(username);
+            // get the crowd service
+            CrowdService cs = JiraServiceAccess.Singleton.getCrowdService();
+            UserUtil userUtil = JiraServiceAccess.Singleton.getUserUtil();
 
-			try {
-				Set<Group> oldGroups = null;
-				if (user == null) {
-					user = new UserImpl(0, username, cn, email, true);
-					cs.addUser(user, "NOT_NEEDED");
-					logger.info(String.format(
-							"creating user %s (cn: %s, email: %s)", username,
-							cn, email));
-					oldGroups = new LinkedHashSet<>();
-				} else {
-					user = new UserImpl(0, username, cn, email, true);
-					cs.updateUser(user);
-					logger.info(String.format(
-							"updating user %s (cn: %s, email: %s)", username,
-							cn, email));
-					// get the actual groups for the user
-					oldGroups = new LinkedHashSet<>(
-							userUtil.getGroupsForUser(username));
-				}
+            User user = cs.getUser(username);
 
-				for (String next : pvpgroups) {
-					Group g = cs.getGroup(next);
-					
-					if (g == null){
-						logger.error(username + ": group '" + next + "' is not a valid JIRA group. ignoring group.");
-						continue;
-					}
-					if (!cs.isUserMemberOfGroup(user, g)) {
-						logger.info(String.format("adding user %s to group %s",
-								username, next));
-						cs.addUserToGroup(user, g);
-					}
-					// remove the group form the old group set
-					oldGroups.remove(g);
-				}
+            try {
+                Set<Group> oldGroups = null;
+                if (user == null) {
+                    user = new UserImpl(0, username, cn, email, true);
+                    cs.addUser(user, "NOT_NEEDED");
+                    logger.info(String.format("creating user %s (cn: %s, email: %s)", username, cn, email));
+                    oldGroups = new LinkedHashSet<>();
+                } else {
+                    user = new UserImpl(0, username, cn, email, true);
+                    cs.updateUser(user);
+                    logger.info(String.format("updating user %s (cn: %s, email: %s)", username, cn, email));
+                    // get the actual groups for the user
+                    oldGroups = new LinkedHashSet<>(userUtil.getGroupsForUser(username));
+                }
 
-				// remove all remaining groups
-				for (Group next : oldGroups) {
-					logger.info(String.format("removing user %s from group %s",
-							username, next.getName()));
-					cs.removeUserFromGroup(user, next);
-				}
+                for (String next : pvpgroups) {
+                    Group g = cs.getGroup(next);
 
-			} catch (Exception e) {
-				Logger.getLogger(this.getClass()).error(
-						username + ": error while writing to crowd ", e);
-			}
-		}
-		return username;
-	}
+                    if (g == null) {
+                        logger.error(username + ": group '" + next + "' is not a valid JIRA group. ignoring group.");
+                        continue;
+                    }
+                    if (!cs.isUserMemberOfGroup(user, g)) {
+                        logger.info(String.format("adding user %s to group %s", username, next));
+                        cs.addUserToGroup(user, g);
+                    }
+                    // remove the group form the old group set
+                    oldGroups.remove(g);
+                }
 
-	public List<String> parsePVPRoles(String roleString) {
-		
-		List<String> roles = new ArrayList<>();
-		if (roleString != null) {
-			//STAT.AT Fix:
-			roleString = roleString.replaceAll("GROUPS\\(|\\)|NAME=", "");
-			roleString = roleString.replaceAll(",", ";");
-			//TODO: generisches Pattern
-			
-			for (String next : roleString.split(";")) {
-				if (next.indexOf("(") != -1) {
-					next = next.substring(0, next.indexOf("("));
-				}
-				roles.add(next);
-			}
-		}
-		return roles;
-	}
+                // remove all remaining groups
+                for (Group next : oldGroups) {
+                    logger.info(String.format("removing user %s from group %s", username, next.getName()));
+                    cs.removeUserFromGroup(user, next);
+                }
 
-	public CrowdService getCrowdService() {
-		return ComponentAccessor.getCrowdService();
-	}
+            } catch (Exception e) {
+                Logger.getLogger(this.getClass()).error(username + ": error while writing to crowd ", e);
+            }
+        }
+        return username;
+    }
 
-	public UserUtil getUserUtil() {
-		return ComponentAccessor.getUserUtil();
-	}
+    public List<String> parsePVPRoles(String roleString) {
+
+        List<String> roles = new ArrayList<>();
+        if (roleString != null) {
+            // STAT.AT Fix:
+            roleString = roleString.replaceAll("GROUPS\\(|\\)|NAME=", "");
+            roleString = roleString.replaceAll(",", ";");
+            // TODO: generisches Pattern
+
+            for (String next : roleString.split(";")) {
+                if (next.indexOf("(") != -1) {
+                    next = next.substring(0, next.indexOf("("));
+                }
+                roles.add(next);
+            }
+        }
+        return roles;
+    }
+
 }

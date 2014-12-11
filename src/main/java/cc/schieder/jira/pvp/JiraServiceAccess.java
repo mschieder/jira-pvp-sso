@@ -23,53 +23,24 @@
  */
 package cc.schieder.jira.pvp;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import com.atlassian.crowd.embedded.api.CrowdService;
+import com.atlassian.jira.component.ComponentAccessor;
+import com.atlassian.jira.user.util.UserUtil;
 
 /**
- * Simple SSOnCookie implementation as suggested here:
- * https://docs.atlassian.com/atlassian-seraph/latest/sso.html
+ * encapsulates basic Jira Service API calls
  * 
  * @author Michael Schieder
- * 
  */
-public class SSOnCookie {
+public class JiraServiceAccess {
 
-	private final static String COOKIE_NAME = "pvpJira";
-    private static PVPHelper pvpHelper = new PVPHelper();
-	private String loginId;
+    public static JiraServiceAccess Singleton = new JiraServiceAccess();
 
-	public SSOnCookie(String loginId) {
-		this.loginId = loginId;
-	}
+    public CrowdService getCrowdService() {
+        return ComponentAccessor.getCrowdService();
+    }
 
-	public static SSOnCookie getSSOCookie(HttpServletRequest request,
-			HttpServletResponse response) {
-		if (request.getCookies() != null) {
-			for (Cookie next : request.getCookies()) {
-				if (next.getName().equals(COOKIE_NAME)) {
-					return new SSOnCookie(next.getValue());
-				}
-			}
-		}
-
-		String username = pvpHelper.parseHttpRequest(request);
-		SSOnCookie ssoCookie = null;
-		if (username != null) {
-			response.addCookie(new Cookie(COOKIE_NAME, username));
-			ssoCookie = new SSOnCookie(username);
-		}
-
-		return ssoCookie;
-	}
-
-	public boolean isExpired() {
-		return false;
-	}
-
-	public String getLoginId() {
-		return loginId;
-	}
-
+    public UserUtil getUserUtil() {
+        return ComponentAccessor.getUserUtil();
+    }
 }

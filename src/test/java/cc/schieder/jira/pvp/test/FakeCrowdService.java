@@ -42,6 +42,19 @@ import com.atlassian.jira.user.util.UserUtil;
  */
 public class FakeCrowdService implements CrowdService, UserUtil {
 
+    private List<User> userList = new ArrayList<>();
+    private Map<User, List<Group>> user2Group = new LinkedHashMap<>();
+
+    public List<User> getUserList() {
+        return userList;
+    }
+
+    public Map<User, List<Group>> getUser2Group() {
+        return user2Group;
+    }
+
+   
+    
 	@Override
 	public void addToJiraUsePermission(User arg0) throws PermissionException {
 
@@ -364,18 +377,6 @@ public class FakeCrowdService implements CrowdService, UserUtil {
 		return null;
 	}
 
-	private List<User> userList = new ArrayList<>();
-	private Map<User, List<Group>> user2Group = new LinkedHashMap<>();
-
-	public List<User> getUserList() {
-		return userList;
-	}
-
-	public Map<User, List<Group>> getUser2Group() {
-		return user2Group;
-	}
-
-	//
 
 	@Override
 	public Group addGroup(Group arg0) throws InvalidGroupException,
@@ -441,8 +442,13 @@ public class FakeCrowdService implements CrowdService, UserUtil {
 	}
 
 	@Override
-	public User getUser(String arg0) {
+	public User getUser(String name) {
 
+		for (User next : userList) {
+            if (name.equals(next.getName())){
+                return next;
+            }
+        }
 		return null;
 	}
 

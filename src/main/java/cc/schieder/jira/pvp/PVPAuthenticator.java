@@ -35,115 +35,114 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
 
-import com.atlassian.jira.component.ComponentAccessor;
 import com.atlassian.seraph.auth.AuthenticatorException;
 import com.atlassian.seraph.auth.DefaultAuthenticator;
 import com.atlassian.seraph.config.SecurityConfig;
 
 /**
  * SSO Authenticator using the basic Portalverbund 1.x http headers
- * @author Michael Schieder
  * 
+ * @author Michael Schieder
  */
 public class PVPAuthenticator extends DefaultAuthenticator {
 
-	private static final long serialVersionUID = 1L;
-	private static final Logger log = Logger.getLogger(PVPAuthenticator.class);
-	private List<String> validRemoteHosts = null;
+    private static final long serialVersionUID = 1L;
 
-	@Override
-	public void init(Map<String, String> params, SecurityConfig config) {
-		super.init(params, config);
-		validRemoteHosts = parseValidRemoteHosts(params.get(PVPHelper.INIT_PARAM_PVP_HOSTNAMES));
-	}
+    private static final Logger log = Logger.getLogger(PVPAuthenticator.class);
 
-	protected List<String> parseValidRemoteHosts(String validRemoteHostString){
-		List<String> hosts = null;
-		if (validRemoteHostString != null){
-			hosts = new ArrayList<>();
-			for (String next : validRemoteHostString.split(",")) {
-				String addr = getIPAddress(next);
-				if (addr != null){
-					hosts.add(getIPAddress(next));
-				}
-			}
-		}
-		return hosts;
-	}
-	protected String getIPAddress(String hostname) {
-		try {
-			return InetAddress.getByName(hostname).getHostAddress();
-		} catch (UnknownHostException e) {
-			log.error("error while getting remote ip address", e);
-			return null;
-		}
-	}
+    private List<String> trustedHosts = null;
 
-	protected boolean isRequestFromValidRemoteHost(HttpServletRequest request) {
-		if (validRemoteHosts != null) {
-			String ipAddress = getIPAddress(request.getRemoteAddr());
-			return validRemoteHosts.contains(ipAddress);
-		}
-		return true;
-	}
+    @Override
+    public void init(Map<String, String> params, SecurityConfig config) {
+        super.init(params, config);
+        trustedHosts = parseTrustedHosts(params.get(PVPHelper.INIT_PARAM_TRUSTED_HOSTS));
+    }
 
-	@Override
-	public Principal getUser(HttpServletRequest request,
-			HttpServletResponse response) {
-		if (!isRequestFromValidRemoteHost(request)) {
-			log.error("invalid request from host " + request.getRemoteAddr());
-			return null;
-		}
+    /**
+     * parsed the trusted.hosts init-param
+     * @param validRemoteHostString
+     * @return
+     */
+    protected List<String> parseTrustedHosts(String validRemoteHostString) {
+        List<String> hosts = null;
+        if (validRemoteHostString != null) {
+            hosts = new ArrayList<>();
+            for (String next : validRemoteHostString.split(",")) {
+                String addr = getIPAddress(next);
+                if (addr != null) {
+                    hosts.add(getIPAddress(next));
+                }
+            }
+        }
+        return hosts;
+    }
 
-		Principal user = null;
-		try {
-			if (request.getSession() != null
-					&& request.getSession().getAttribute(
-							DefaultAuthenticator.LOGGED_IN_KEY) != null) {
-				log.info("Session found; user already logged in");
-				user = (Principal) request.getSession().getAttribute(
-						DefaultAuthenticator.LOGGED_IN_KEY);
-			} else {
-				SSOnCookie ssoCookie = SSOnCookie.getSSOCookie(request,
-						response);
-				log.info("Got SSOnCookie " + ssoCookie);
+    protected String getIPAddress(String hostname) {
+        try {
+            return InetAddress.getByName(hostname).getHostAddress();
+        } catch (UnknownHostException e) {
+            log.error("error while getting remote ip address", e);
+            return null;
+        }
+    }
 
-				if (ssoCookie != null && !ssoCookie.isExpired()) {
-					// Seamless login from intranet
-					log.info("Trying seamless Single Sign-on...");
-					String username = ssoCookie.getLoginId();
-					log.info("Got username = " + username);
-					if (username != null) {
-						user = getUser(username);
-						log.info("Logged in via SSO, with User " + user);
-						request.getSession().setAttribute(
-								DefaultAuthenticator.LOGGED_IN_KEY, user);
-						request.getSession().setAttribute(
-								DefaultAuthenticator.LOGGED_OUT_KEY, null);
-					}
-				} else {
-					log.info("SSOCookie is null; redirecting");
-					// user was not found, or not currently valid
-					return null;
-				}
-			}
-		} catch (Exception e) { // catch class cast exceptions
-			log.error("Exception: " + e.getMessage(), e);
-		}
-		return user;
-	}
+    protected boolean isTrustedHostRequest(HttpServletRequest request) {
+        if (trustedHosts != null) {
+            String ipAddress = getIPAddress(request.getRemoteAddr());
+            return trustedHosts.contains(ipAddress);
+        }
+        return true;
+    }
 
-	@Override
-	protected boolean authenticate(Principal principal, String password)
-			throws AuthenticatorException {
-		// trusted zone
-		return true;
+    @Override
+    public Principal getUser(HttpServletRequest request, HttpServletResponse response) {
+        Principal user = null;
+        try {
+            if (request.getSession() != null && request.getSession().getAttribute(DefaultAuthenticator.LOGGED_IN_KEY) != null) {
+                log.info("Session found; user already logged in");
+                user = (Principal) request.getSession().getAttribute(DefaultAuthenticator.LOGGED_IN_KEY);
+            } else {
+                if (!isTrustedHostRequest(request)) {
+                    log.error("untrusted request from host " + request.getRemoteAddr());
+                    return null;
+                }
+                
+                SSOnCookie ssoCookie = SSOnCookie.getSSOCookie(request, response);
+                log.info("Got SSOnCookie " + ssoCookie);
 
-	}
+                if (ssoCookie != null && !ssoCookie.isExpired()) {
+                    // Seamless login from intranet
+                    log.info("Trying seamless Single Sign-on...");
+                    String username = ssoCookie.getLoginId();
+                    log.info("Got username = " + username);
+                    if (username != null) {
+                        user = getUser(username);
+                        log.info("Logged in via SSO, with User " + user);
+                        request.getSession().setAttribute(DefaultAuthenticator.LOGGED_IN_KEY, user);
+                        request.getSession().setAttribute(DefaultAuthenticator.LOGGED_OUT_KEY, null);
+                    }
+                } else {
+                    log.info("SSOCookie is null; redirecting");
+                    // user was not found, or not currently valid
+                    return null;
+                }
+            }
+        } catch (Exception e) { // catch class cast exceptions
+            log.error("Exception: " + e.getMessage(), e);
+        }
+        return user;
+    }
 
-	@Override
-	protected Principal getUser(String username) {
-		return ComponentAccessor.getCrowdService().getUser(username);
-	}
+    @Override
+    protected boolean authenticate(Principal principal, String password) throws AuthenticatorException {
+        // trusted zone
+        return true;
+
+    }
+
+    @Override
+    protected Principal getUser(String username) {
+        return JiraServiceAccess.Singleton.getCrowdService().getUser(username);
+    }
 
 }
